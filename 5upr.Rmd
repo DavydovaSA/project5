@@ -1,0 +1,162 @@
+---
+title: "Упражнение 5"
+author: "Davydova S.A."
+date: '15 апреля 2017 г '
+output: html_document
+---
+
+```{r Данные, include = F}
+# загрузка пакетов
+library('ISLR')              # набор данных Auto
+library('GGally')            # матричные графики
+library('boot')
+
+head(Auto)
+my.seed <- 1
+
+# Метод проверочной выборки ====================================================
+
+# общее число наблюдений
+n <- nrow(Auto)
+
+# доля обучающей выборки
+train.percent <- 0.5
+
+# выбрать наблюдения в обучающую выборку
+set.seed(my.seed)
+inTrain <- sample(n, n * train.percent)
+inTrain
+
+```
+
+# Метод проверочной выборки
+
+```{r echo = T, message = F, warning = F}
+# описательные статистики по переменным
+attach(Auto)
+# подгонка линейной модели на обучающей выборке
+fit.lm.1 <- lm(mpg ~ weight + acceleration + year + cylinders, 
+               subset = inTrain)
+# считаем MSE на тестовой выборке
+mean((mpg[-inTrain] - predict(fit.lm.1,
+                              Auto[-inTrain, ]))^2)
+
+# подгонка линейной модели на обучающей выборке
+fit.lm.2 <- lm(mpg ~ weight + acceleration + year, 
+               subset = inTrain)
+# считаем MSE на тестовой выборке
+mean((mpg[-inTrain] - predict(fit.lm.2,
+                              Auto[-inTrain, ]))^2)
+# отсоединить таблицу с данными
+detach(Auto)
+
+```
+
+MSE на всех переменных: 11.8523;
+MSE на непрерывных переменных: 11.67121.
+
+
+```{r echo = T, warning = F, error = F}
+
+# подгонка линейной модели на обучающей выборке
+fit.glm.1 <- glm(mpg ~ weight + acceleration + year + cylinders, data = Auto)
+# считаем LOOCV-ошибку
+cv.err.1 <- cv.glm(Auto, fit.glm.1)
+# результат: первое число -- по формуле LOOCV-ошибки,
+#  второе -- с поправкой на смещение
+cv.err.1$delta[1]
+
+fit.glm.2 <- glm(mpg ~ weight + acceleration + year, data = Auto)
+# считаем LOOCV-ошибку
+cv.err.2 <- cv.glm(Auto, fit.glm.2)
+# результат: первое число -- по формуле LOOCV-ошибки,
+#  второе -- с поправкой на смещение
+cv.err.2$delta[1]
+
+```
+
+MSE на всех переменных: 11.97062;
+MSE на непрерывных переменных: 11.9044. 
+
+# Перекрёстная проверка по отдельным наблюдениям (LOOCV)
+
+```{r echo = T, warning = F, error = F}
+
+# оценим точность полиномиальных моделей, меняя степень
+# вектор с ошибками по 10-кратной кросс-валидации
+cv.err.k.fold.1 <- rep(0, 5)
+names(cv.err.k.fold.1) <- 1:5
+# цикл по степеням полиномов
+for (i in 1:5){
+  fit.glm <- glm(mpg ~ poly(weight + acceleration + year + cylinders, i), data = Auto)
+  cv.err.k.fold.1[i] <- cv.glm(Auto, fit.glm,
+                             K = 10)$delta[1]
+}
+# результат
+cv.err.k.fold.1
+
+
+cv.err.k.fold.2 <- rep(0, 5)
+names(cv.err.k.fold.2) <- 1:5
+# цикл по степеням полиномов
+for (i in 1:5){
+  fit.glm <- glm(mpg ~ poly(weight + acceleration + year + cylinders, i), data = Auto)
+  cv.err.k.fold.2[i] <- cv.glm(Auto, fit.glm,
+                             K = 5)$delta[1]
+}
+# результат
+cv.err.k.fold.2
+
+cv.err.k.fold.3 <- rep(0, 5)
+names(cv.err.k.fold.3) <- 1:5
+# цикл по степеням полиномов
+for (i in 1:5){
+  fit.glm <- glm(mpg ~ poly(weight + acceleration + year, i), data = Auto)
+  cv.err.k.fold.3[i] <- cv.glm(Auto, fit.glm,
+                               K = 10)$delta[1]
+}
+# результат
+cv.err.k.fold.3
+
+
+cv.err.k.fold.4 <- rep(0, 5)
+names(cv.err.k.fold.4) <- 1:5
+# цикл по степеням полиномов
+for (i in 1:5){
+  fit.glm <- glm(mpg ~ poly(weight + acceleration + year, i), data = Auto)
+  cv.err.k.fold.4[i] <- cv.glm(Auto, fit.glm,
+                               K = 5)$delta[1]
+}
+# результат
+cv.err.k.fold.4
+
+```
+
+# Бутстреп
+
+```{r echo = T, warning = F, error = F}
+
+boot.fn <- function(data, index){
+  coef(lm(mpg ~ weight + acceleration + year + cylinders, data = data, subset = index))
+}
+boot.fn(Auto, 1:n)
+
+boot.fn.2 <- function(data, index){
+  coef(lm(mpg ~ weight + acceleration + year, data = data, subset = index))
+}
+boot.fn.2(Auto, 1:n)
+
+
+boot(Auto, boot.fn, 1000)
+boot(Auto, boot.fn.2, 1000)
+
+# сравнение с МНК
+
+summary(lm(mpg ~ weight + acceleration + year + cylinders, data = Auto))$coef
+
+# для модели только с непрерывными объясняющими переменными:
+summary(lm(mpg ~ weight + acceleration + year, data = Auto))$coef
+
+```
+
+Оценки отличаются, т.к. МНК - параметрический метод с допущениями.
