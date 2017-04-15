@@ -52,10 +52,6 @@ detach(Auto)
 
 ```
 
-MSE на всех переменных: 11.8523;
-MSE на непрерывных переменных: 11.67121.
-
-
 ```{r echo = T, warning = F, error = F}
 
 # подгонка линейной модели на обучающей выборке
@@ -73,61 +69,25 @@ cv.err.2 <- cv.glm(Auto, fit.glm.2)
 #  второе -- с поправкой на смещение
 cv.err.2$delta[1]
 
-```
-
-MSE на всех переменных: 11.97062;
-MSE на непрерывных переменных: 11.9044. 
+``` 
 
 # Перекрёстная проверка по отдельным наблюдениям (LOOCV)
 
 ```{r echo = T, warning = F, error = F}
 
-# оценим точность полиномиальных моделей, меняя степень
-# вектор с ошибками по 10-кратной кросс-валидации
-cv.err.k.fold.1 <- rep(0, 5)
-names(cv.err.k.fold.1) <- 1:5
-# цикл по степеням полиномов
-for (i in 1:5){
-  fit.glm <- glm(mpg ~ poly(weight + acceleration + year + cylinders, i), data = Auto)
-  cv.err.k.fold.1[i] <- cv.glm(Auto, fit.glm,
+cv.err.k.fold.1 <- cv.glm(Auto, fit.glm.1,
+                          K = 5)$delta[1]
+cv.err.k.fold.2 <- cv.glm(Auto, fit.glm.1,
                              K = 10)$delta[1]
-}
-# результат
 cv.err.k.fold.1
-
-
-cv.err.k.fold.2 <- rep(0, 5)
-names(cv.err.k.fold.2) <- 1:5
-# цикл по степеням полиномов
-for (i in 1:5){
-  fit.glm <- glm(mpg ~ poly(weight + acceleration + year + cylinders, i), data = Auto)
-  cv.err.k.fold.2[i] <- cv.glm(Auto, fit.glm,
-                             K = 5)$delta[1]
-}
-# результат
 cv.err.k.fold.2
 
-cv.err.k.fold.3 <- rep(0, 5)
-names(cv.err.k.fold.3) <- 1:5
-# цикл по степеням полиномов
-for (i in 1:5){
-  fit.glm <- glm(mpg ~ poly(weight + acceleration + year, i), data = Auto)
-  cv.err.k.fold.3[i] <- cv.glm(Auto, fit.glm,
-                               K = 10)$delta[1]
-}
-# результат
+
+cv.err.k.fold.3 <- cv.glm(Auto, fit.glm.2,
+                            K = 5)$delta[1]
+cv.err.k.fold.4 <- cv.glm(Auto, fit.glm.2,
+                             K = 10)$delta[1]
 cv.err.k.fold.3
-
-
-cv.err.k.fold.4 <- rep(0, 5)
-names(cv.err.k.fold.4) <- 1:5
-# цикл по степеням полиномов
-for (i in 1:5){
-  fit.glm <- glm(mpg ~ poly(weight + acceleration + year, i), data = Auto)
-  cv.err.k.fold.4[i] <- cv.glm(Auto, fit.glm,
-                               K = 5)$delta[1]
-}
-# результат
 cv.err.k.fold.4
 
 ```
